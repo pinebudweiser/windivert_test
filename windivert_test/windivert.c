@@ -37,7 +37,6 @@ int main()
 	uint32_t packetLen;
 	WINDIVERT_ADDRESS recvAddr;
 	TCP_PACKET* recvTcpPacket;
-	BOOL blockHTTP = FALSE;
 
 	windvtHandle = WinDivertOpen("true", WINDIVERT_LAYER_NETWORK, 0, 0);
 	if (windvtHandle == INVALID_HANDLE_VALUE)
@@ -67,17 +66,13 @@ int main()
 			{
 				dump_16(packet, packetLen);
 				printf(" [BLOCK] HTTP\n");
-				blockHTTP = TRUE;
+				continue;
 			}
 		}
-		if (blockHTTP == FALSE)
+		if (!WinDivertSend(windvtHandle, packet, packetLen, &recvAddr, NULL))
 		{
-			if (!WinDivertSend(windvtHandle, packet, packetLen, &recvAddr, NULL))
-			{
-				printf(" [Err] WinDivertSend failed.. error_code: %d\n", GetLastError());
-			}
+			printf(" [Err] WinDivertSend failed.. error_code: %d\n", GetLastError());
 		}
-		blockHTTP = FALSE;
 	}
 	WinDivertClose(windvtHandle);
 
