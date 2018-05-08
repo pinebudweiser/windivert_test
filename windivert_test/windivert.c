@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include "windivert.h"
+#include "data.h"
 
 #define MAX_PACKET_SIZE 0xFFFF
 #define PROTOCOL_TCP	0x6
@@ -10,12 +11,6 @@
 #define HTTP_PORT		80
 
 #pragma comment (lib,"Ws2_32.lib")
-
-typedef struct
-{
-	WINDIVERT_IPHDR ip;
-	WINDIVERT_TCPHDR tcp;
-}TCP_PACKET;
 
 void dump_16(uint8_t* packet, uint32_t len)
 {
@@ -36,7 +31,8 @@ int main()
 	uint8_t packet[MAX_PACKET_SIZE];
 	uint32_t packetLen;
 	WINDIVERT_ADDRESS recvAddr;
-	TCP_PACKET* recvTcpPacket;
+	IP* ipHeader;
+	TCP* tcpHeader;
 
 	windvtHandle = WinDivertOpen("true", WINDIVERT_LAYER_NETWORK, 0, 0);
 	if (windvtHandle == INVALID_HANDLE_VALUE)
@@ -56,13 +52,13 @@ int main()
 			continue;
 		}
 
-		recvTcpPacket = (TCP_PACKET*)(packet);
-
-		if (recvTcpPacket->ip.Version == VERSION_IPV4 &&
-			recvTcpPacket->ip.Protocol == PROTOCOL_TCP)
+		ipHeader = (IP*)(packet);
+		if (ipHeader->VER == VERSION_IPV4 &&
+			ipHeader->ProtocolID == PROTOCOL_TCP)
 		{
-			if (ntohs(recvTcpPacket->tcp.DstPort) == (UINT16)HTTP_PORT ||
-				ntohs(recvTcpPacket->tcp.SrcPort) == (UINT16)HTTP_PORT)
+			tcpHeader = (TCP*)(packet + (ipHeader->IHL << 2));
+			if (ntohs(tcpHeader->DstPort) == (UINT16)HTTP_PORT ||
+				ntohs(tcpHeader->SrcPort) == (UINT16)HTTP_PORT)
 			{
 				dump_16(packet, packetLen);
 				printf(" [BLOCK] HTTP\n");
